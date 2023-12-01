@@ -1,0 +1,6 @@
+<%@ taglib uri="jakarta.tags.core" prefix="c" %>
+<head>
+    <title>
+        <c:out value="Spring MVC w/ JSP and Security" />
+    </title>
+</head>
