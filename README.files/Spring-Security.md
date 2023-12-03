@@ -7,12 +7,16 @@ is to evolve this authorization mechanism to use OAuth2 and sign in using Google
 - [Dependencies](#dependencies)
   - [Using Spring Initializer](#using-spring-initializr)
   - [Main dependencies](#main-dependencies)
-  - [Security](#security)
+  - [Security dependencies](#security-dependencies)
 - [Configuration](#configuration)
   - [Default Login](#default-login)
   - [Hard coding credentials](#hard-coding-credentials)
-  - [Redirecting after login](#redirecting-after-login)
-  - [Restricting access by role](#restricting-access-by-role)
+- [Redirecting after login](#redirecting-after-login)
+- [Restricting access by role](#restricting-access-by-role)
+- [Allowing anonymous access](#allowing-anonymous-access)
+- [Logout redirection](#logout-redirection)
+- [Last touch](#last-touch)
+  - [Other secured and unsecured pages](#other-secured-and-unsecured-pages)
 
 ## Dependencies
 
@@ -30,7 +34,7 @@ make security work.
 This dependency is an addition to the original ones at 
 [Spring Boot MVC and JSP pages Main Dependencies](./Spring-MVC-&-JSP.md#main-dependencies).
 
-### Security
+### Security dependencies
 
 ```xml
 <dependency>
@@ -77,7 +81,7 @@ public class WebSecurityConfig {
 }
 ```
 
-### Redirecting after login
+## Redirecting after login
 
 Let's assume we have an admin user type besides the regular one. So I want that both are redirected to different pages 
 after login.
@@ -226,7 +230,7 @@ private AuthenticationSuccessHandler authenticationSuccessHandler() {
 }
 ```
 
-### Restricting access by role
+## Restricting access by role
 
 The next step is to prevent a regular user to access the administration page, but the administrator must have access to 
 both pages.
@@ -253,4 +257,237 @@ public SecurityFilterChain securityFilterChain(final HttpSecurity http) throws E
             .and()
             .build();
 }
+```
+
+## Allowing anonymous access
+
+Until now, we've been restricting all access to the application, meaning that every single page needs authentication. 
+But what if I want to separate my resources into "secured" and "unsecured" resource? Like any anonymous request can 
+access like a main open to anyone page?  
+
+We need to remove the `.anyRequest().authenticated()` authorization from our security filter chain and replace it by
+`.anyRequest().permitAll()`. Everything that hasn't been explicitly secured will be free of use. To remove the 
+complexity of having to secure every single resource that needs authorization I'll create the following folder 
+structure moving the current file accordingly:
+```
+.
+└── WEB-INF
+    └── view
+        ├── header.jspf
+        ├── index.jsp
+        └── secured
+            ├── admin
+            │   └── admin.jsp
+            └── user
+                └── main.jsp
+```
+
+So, any page under `secured/user` will be accessible to normal users and admins will have access to any resource they 
+want. Not logged in visitors, however, will only be able to see `index.jsp`.
+
+Before all, I just can't keep using literal string everywhere. So I will create a set of constants to better address 
+this issue being easier to refactor it later, in case I need it.
+
+```java
+public final class ViewPath {
+
+    public static final class URL {
+        public final static class ROOT {
+            public static final String PATH = "/";
+            public static final String OTHER = ROOT.PATH + "other";
+        }
+
+        public final static class USER {
+            public static final String PATH = ROOT.PATH + "user/";
+            public static final String MAIN = PATH + "main";
+            public static final String OTHER = PATH + "other";
+        }
+
+        public final static class ADMIN {
+            public static final String PATH = ROOT.PATH + "admin/";
+            public static final String ADMIN = PATH + "admin";
+            public static final String OTHER = PATH + "other";
+        }
+    }
+
+}
+```
+
+So, if I need to address `/user` path, I just need to use `URL.USER.PATH` and if I need to address `/user/main` 
+resource, I just need to use `URL.USER.MAIN`. In case those paths values change, I just need to change the constants.
+
+Anyway... Authorize HTTP request in my security filter chain now will be...
+
+```java
+...
+.authorizeHttpRequests(
+        requests -> requests
+                .requestMatchers(URL.USER.PATH +"**").hasRole("USER")
+                .requestMatchers(URL.ADMIN.PATH +"**").hasRole("ADMIN")
+                .anyRequest().permitAll()
+)
+...
+```
+
+That's the same as if I typed to `/user/**` and `/admin/**`. It means that anything under `/user` will be available 
+for users with role `USER` and everything under `/admin` will be available for users with role `ADMIN`. The rest of the 
+resources will be available to anyone.
+
+Something similar must be done to the `WebConfig`, but also change the path for the JSPs.
+
+```java
+@Bean
+public WebMvcConfigurer webMvcConfigurer() {
+    return new WebMvcConfigurer() {
+        @Override
+        public void addViewControllers(@NonNull final ViewControllerRegistry registry) {
+            registry.addViewController(ROOT).setViewName("index");
+            registry.addViewController(USER.MAIN).setViewName("secured/user/main");
+            registry.addViewController(ADMIN.ADMIN).setViewName("secured/admin/admin");
+        }
+    };
+}
+```
+
+Now anyone can access `/`, but to access `/user/main` or `/admin/admin` it will require to log in.
+
+## Logout redirection
+
+After logout, the default behavior is to send the user back to the login page. I'd rather to be redirected to the main
+anonymous page.
+
+To do that it's actually quite simple (if you don't know different redirections according to the user logging out). Just
+Add a `logout` method to the security filter chain as illustrated below:
+
+```java
+...
+        
+.and()
+.logout(logout -> logout.logoutSuccessUrl(URL.ROOT.PATH))
+.build();
+
+...
+```
+
+## Last touch
+
+Let's wrap up this security part with some last touches...
+
+### Other secured and unsecured pages
+
+I'll add new pages to better illustrate authorized and unauthorized access to resources.
+
+Also, I'll change the pages a little bit. It will end up with something like this:
+
+```
+.
+└── WEB-INF
+    └── view
+        ├── header.jspf
+        ├── index.jsp
+        ├── links.jspf
+        ├── other.jsp
+        └── secured
+            ├── admin
+            │   ├── admin.jsp
+            │   └── other-admin.jsp
+            └── user
+                ├── main.jsp
+                └── other-main.jsp
+```
+
+The new `links.jsp` page has a simple condition. If the user is authenticated, it will show a "Sign Out" link, if it
+is not, the "Sign In" link.
+
+Something like:
+```html
+<%@ page import="com.momo2x.study.springmvc.controller.ViewHelper" %>
+<%@ taglib uri="jakarta.tags.core" prefix="c" %>
+<h3>
+    <c:choose>
+        <c:when test="${ViewHelper.authenticated}">
+            To leave, please <a href="/logout">Sign out</a>.
+        </c:when>
+        <c:otherwise>
+            Please <a href="/login">Sign In</a>.
+        </c:otherwise>
+    </c:choose>
+</h3>
+```
+
+The `ViewHelper` class is our "hack" to get if the user is authenticated or not. Spring security will always consider a
+user authenticated like "anonymous" when setting up our security strategy, so calling
+`SecurityContextHolder.getContext().getAuthentication().isAuthentixated()` will always return true.
+
+```java
+public class ViewHelper {
+
+    public static boolean isAuthenticated() {
+        return SecurityContextHolder
+                .getContext()
+                .getAuthentication()
+                .getAuthorities()
+                .stream()
+                .map(GrantedAuthority::getAuthority)
+                .anyMatch(RoleType::isAuthority);
+    }
+}
+```
+
+For the sake of readability and reuse I created a `RoleType` enumerator that will help me with all Role vs. Authority
+"complexity". Also, will allow me to refactor some code removing literals here and there.
+
+```java
+public enum RoleType {
+
+    USER,
+    ADMIN;
+
+    public String authority() {
+        return "ROLE_" + this.name();
+    }
+
+    public static String authority(final RoleType role) {
+        return "ROLE_" + role.name();
+    }
+
+    public static boolean isAuthority(final String auth) {
+        final Predicate<RoleType> isRoleAuthority = role -> authority(role).equals(auth);
+
+        return Arrays
+                .stream(values())
+                .anyMatch(isRoleAuthority);
+    }
+
+}
+```
+
+And just a glimpse of the refactoring stuff:
+
+```
+...
+
+.requestMatchers(URL.USER.PATH +"**").hasRole(USER.name())
+.requestMatchers(URL.ADMIN.PATH +"**").hasRole(USER.name())
+
+...
+
+.password("mypassword")
+.roles(USER.name())
+.build(),
+
+...
+
+.password("adminpwd")
+.roles(USER.name(), ADMIN.name())
+.build()
+
+...
+
+private static final Map<String, RoleData> ROLE_DATA_BY_AUTH = Map.of(
+        ADMIN.authority(), new RoleData(1, URL.ADMIN.ADMIN),
+        USER.authority(), new RoleData(2, URL.USER.MAIN)
+);
+
+...
 ```

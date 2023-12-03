@@ -21,6 +21,9 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
+import static com.momo2x.study.springmvc.config.RoleType.ADMIN;
+import static com.momo2x.study.springmvc.config.RoleType.USER;
+import static com.momo2x.study.springmvc.config.ViewPath.URL;
 import static java.util.Optional.ofNullable;
 import static org.springframework.security.core.userdetails.User.withDefaultPasswordEncoder;
 import static org.springframework.security.web.WebAttributes.AUTHENTICATION_EXCEPTION;
@@ -33,16 +36,14 @@ public class WebSecurityConfig {
         return http
                 .authorizeHttpRequests(
                         requests -> requests
-                                .requestMatchers("/main")
-                                .hasRole("USER")
-                                .requestMatchers("/admin")
-                                .hasRole("ADMIN")
-                                .anyRequest()
-                                .authenticated()
+                                .requestMatchers(URL.USER.PATH +"**").hasRole(USER.name())
+                                .requestMatchers(URL.ADMIN.PATH +"**").hasRole(USER.name())
+                                .anyRequest().permitAll()
                 )
                 .formLogin()
                 .successHandler(authenticationSuccessHandler())
                 .and()
+                .logout(logout -> logout.logoutSuccessUrl(URL.ROOT.PATH))
                 .build();
     }
 
@@ -53,12 +54,12 @@ public class WebSecurityConfig {
                 withDefaultPasswordEncoder()
                         .username("myuser")
                         .password("mypassword")
-                        .roles("USER")
+                        .roles(USER.name())
                         .build(),
                 withDefaultPasswordEncoder()
                         .username("admin")
                         .password("adminpwd")
-                        .roles("USER", "ADMIN")
+                        .roles(USER.name(), ADMIN.name())
                         .build()
         );
     }
@@ -67,9 +68,9 @@ public class WebSecurityConfig {
         return new AuthenticationSuccessHandler() {
             private record RoleData(int priority, String url) {}
 
-            private static final Map<String, RoleData> ROLES = Map.of(
-                    "ROLE_ADMIN", new RoleData(1, "/admin"),
-                    "ROLE_USER", new RoleData(2, "/main")
+            private static final Map<String, RoleData> ROLE_DATA_BY_AUTH = Map.of(
+                    ADMIN.authority(), new RoleData(1, URL.ADMIN.ADMIN),
+                    USER.authority(), new RoleData(2, URL.USER.MAIN)
             );
 
             @Override
@@ -87,8 +88,8 @@ public class WebSecurityConfig {
             }
 
             private String findTargetUrlByRole(final Authentication authentication) {
-                final Predicate<GrantedAuthority> byValidRole = auth -> ROLES.containsKey(auth.getAuthority());
-                final Function<GrantedAuthority, RoleData> toRoleData =  auth -> ROLES.get(auth.getAuthority());
+                final Predicate<GrantedAuthority> byValidRole = auth -> ROLE_DATA_BY_AUTH.containsKey(auth.getAuthority());
+                final Function<GrantedAuthority, RoleData> toRoleData = auth -> ROLE_DATA_BY_AUTH.get(auth.getAuthority());
                 final Comparator<RoleData> byPriority = Comparator.comparingInt(RoleData::priority);
 
                 return authentication

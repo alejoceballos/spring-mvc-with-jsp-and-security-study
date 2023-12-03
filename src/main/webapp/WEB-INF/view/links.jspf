@@ -1,0 +1,12 @@
+<%@ page import="com.momo2x.study.springmvc.controller.ViewHelper" %>
+<%@ taglib uri="jakarta.tags.core" prefix="c" %>
+<h3>
+    <c:choose>
+        <c:when test="${ViewHelper.authenticated}">
+            To leave, please <a href="/logout">Sign out</a>.
+        </c:when>
+        <c:otherwise>
+            Please <a href="/login">Sign In</a>.
+        </c:otherwise>
+    </c:choose>
+</h3>
