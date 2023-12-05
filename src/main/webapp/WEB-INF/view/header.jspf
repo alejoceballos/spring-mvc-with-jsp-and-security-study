@@ -1,5 +1,13 @@
+<%@ page import="com.momo2x.study.springmvc.view.ViewHelper" %>
 <%@ taglib uri="jakarta.tags.core" prefix="c" %>
 <head>
+    <script src="/webjars/jquery/jquery.min.js"></script>
+
+    <c:if test="${ViewHelper.authenticated()}">
+        <script src="/api-client.js"></script>
+        <script src="/view-admin.js"></script>
+    </c:if>
+
     <title>
         <c:out value="Spring MVC w/ JSP and Security" />
     </title>

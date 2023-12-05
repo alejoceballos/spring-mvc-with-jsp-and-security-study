@@ -401,11 +401,11 @@ is not, the "Sign In" link.
 
 Something like:
 ```html
-<%@ page import="com.momo2x.study.springmvc.controller.ViewHelper" %>
+<%@ page import="com.momo2x.study.springmvc.view.ViewHelper" %>
 <%@ taglib uri="jakarta.tags.core" prefix="c" %>
 <h3>
     <c:choose>
-        <c:when test="${ViewHelper.authenticated}">
+        <c:when test="${ViewHelper.authenticated()}">
             To leave, please <a href="/logout">Sign out</a>.
         </c:when>
         <c:otherwise>
@@ -422,7 +422,7 @@ user authenticated like "anonymous" when setting up our security strategy, so ca
 ```java
 public class ViewHelper {
 
-    public static boolean isAuthenticated() {
+    public static boolean authenticated() {
         return SecurityContextHolder
                 .getContext()
                 .getAuthentication()
@@ -431,6 +431,7 @@ public class ViewHelper {
                 .map(GrantedAuthority::getAuthority)
                 .anyMatch(RoleType::isAuthority);
     }
+    
 }
 ```
 
