@@ -128,10 +128,11 @@ readability's sake.
    - [Dependencies](./README.files/Spring-Security.md#dependencies)
        - [Using Spring Initializer](./README.files/Spring-Security.md#using-spring-initializr)
        - [Main dependencies](./README.files/Spring-Security.md#main-dependencies)
-       - [Security](./README.files/Spring-Security.md#security)
+       - [Security dependencies](./README.files/Spring-Security.md#security-dependencies)
    - [Configuration](./README.files/Spring-Security.md#configuration)
        - [Default Login](./README.files/Spring-Security.md#default-login)
        - [Hard coding credentials](./README.files/Spring-Security.md#hard-coding-credentials)
+   - [Redirecting after login](./README.files/Spring-Security.md#redirecting-after-login)
    - [Restricting access by role](./README.files/Spring-Security.md#restricting-access-by-role)
    - [Allowing anonymous access](./README.files/Spring-Security.md#allowing-anonymous-access)
    - [Logout redirection](./README.files/Spring-Security.md#logout-redirection)
@@ -149,6 +150,10 @@ readability's sake.
        - [Importing jQuery in the client](./README.files/Spring-REST-jQuery-&-Ajax.md#importing-jquery-in-the-client)
        - [The asynchronous Ajax call](./README.files/Spring-REST-jQuery-&-Ajax.md#the-asynchronous-ajax-call)
        - [The caller](./README.files/Spring-REST-jQuery-&-Ajax.md#the-caller)
+   - [API live documentation](./README.files/Spring-REST-jQuery-&-Ajax.md#api-live-documentation)
+       - [Swagger Maven dependency](./README.files/Spring-REST-jQuery-&-Ajax.md#swagger-maven-dependency)
+       - [Using the "Try it out" feature](./README.files/Spring-REST-jQuery-&-Ajax.md#using-the-try-it-out-feature)
+       - [Enhancing the API documentation](./README.files/Spring-REST-jQuery-&-Ajax.md#enhancing-the-api-documentation)
 4. Security Part 2 - OAuth
    - Google Login
      - TBD

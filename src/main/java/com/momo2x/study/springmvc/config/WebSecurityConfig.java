@@ -39,6 +39,7 @@ public class WebSecurityConfig {
                                 .requestMatchers(URL.USER.PATH + "**").hasRole(USER.name())
                                 .requestMatchers(URL.ADMIN.PATH + "**").hasRole(ADMIN.name())
                                 .requestMatchers("/api/**").hasRole(ADMIN.name())
+                                .requestMatchers("/swagger-ui/**").hasRole(ADMIN.name())
                                 .anyRequest().permitAll()
                 )
                 .formLogin()

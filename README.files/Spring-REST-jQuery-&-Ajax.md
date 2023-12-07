@@ -16,6 +16,10 @@ will be over, for now.
   - [Importing jQuery in the client](#importing-jquery-in-the-client)
   - [The asynchronous Ajax call](#the-asynchronous-ajax-call)
   - [The caller](#the-caller)
+- [API live documentation](#api-live-documentation)
+  - [Swagger Maven dependency](#swagger-maven-dependency)
+  - [Using the "Try it out" feature](#using-the-try-it-out-feature)
+  - [Enhancing the API documentation](#enhancing-the-api-documentation)
 
 ## The REST API
 
@@ -289,4 +293,72 @@ So the only thing left for this to work is call `displayUsers()` in `admin.js`:
     displayUsers();
 </script>
 </html>
+```
+
+## API live documentation
+
+- References: 
+  - https://swagger.io/tools/open-source/
+  - https://medium.com/@f.s.a.kuzman/using-swagger-3-in-spring-boot-3-c11a483ea6dc
+  - https://www.baeldung.com/spring-rest-openapi-documentation
+- Maven: 
+  - https://mvnrepository.com/artifact/org.springdoc/springdoc-openapi-starter-webmvc-ui/
+
+Let's create a nice API documentation to help developers.
+
+### Swagger Maven dependency
+
+Adding...
+
+```xml
+<dependency>
+    <groupId>org.springdoc</groupId>
+    <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+    <version>2.3.0</version>
+</dependency>
+```
+
+... Is enough to show all endpoints of our API, and since it is out of our secured area, anyone can see it, but not
+use it, since the user must be authenticated as an administrator to perform a request to it.
+
+### Using the "Try it out" feature
+
+In order to be able to "Try it out", meaning to use the Swagger Open API screen to send a real request to the server an
+admin must be authenticated. Add the following to the authorize HTTP requests.
+
+```java
+...
+.requestMatchers("/swagger-ui/**").hasRole(ADMIN.name())
+...
+```
+
+### Enhancing the API documentation
+
+And just to have a more detailed and personalized information regarding the API, add `@Tag`, `@Operation` and 
+`@ApiResponse` annotations to the Controller.
+
+```java
+@Tag(name = "User", description = "Operations regarding users")
+@RestController
+@RequestMapping("/api/users")
+@RequiredArgsConstructor
+public class UserController {
+
+    public final UserService service;
+
+    @Operation(summary = "List all users and its authorities.")
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Returns all users",
+                    content = {
+                            @Content(
+                                    mediaType = "application/json",
+                                    schema = @Schema(implementation = UserData.class))})})
+    @GetMapping()
+    public List<UserData> list() {
+        return service.findUsers();
+    }
+
+}
 ```
